@@ -50,6 +50,7 @@ class ZoomController:
         # update sizes and cached surfaces
         world.tile_size = new_tile_size
         renderer.tile_surfaces = renderer._get_surfaces(new_tile_size)
+        renderer._clear_chunk_cache()
 
         # scale camera so center stays the same
         screen_center *= scale
@@ -70,5 +71,6 @@ class ZoomController:
         new_tile_size = self.tile_size
         world.tile_size = new_tile_size
         renderer.tile_surfaces = renderer._get_surfaces(new_tile_size)
+        renderer._clear_chunk_cache()
         if camera_vel is not None and old_tile_size != 0:
             camera_vel *= (new_tile_size / old_tile_size)

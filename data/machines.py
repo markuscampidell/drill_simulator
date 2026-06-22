@@ -35,15 +35,9 @@ class Machine:
         if surf is None:
             surf = py.Surface((self.width * tile_size, self.height * tile_size), py.SRCALPHA)
             surf.fill(self.color)
+            surf = surf.convert_alpha()  # Convert for faster blitting
             _machine_surface_cache[key] = surf
         return surf
-
-    def draw(self, screen, camera, tile_size=16):
-        surf = self._get_surface(tile_size)
-        screen.blit(
-            surf,
-            (self.x * tile_size - camera.x, self.y * tile_size - camera.y),
-        )
 
     def __repr__(self):
         return (

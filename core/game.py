@@ -26,7 +26,6 @@ class Game:
         self.machine_manager = MachineManager(self.world)
         self.renderer = Renderer(self.world, self.machine_manager)
 
-        
         self.inventory = Inventory()
         self.inventory.add("iron_ore", 100)
         self.inventory.add("coal", 50)
@@ -60,7 +59,7 @@ class Game:
             elif event.type == py.MOUSEWHEEL:
                 self.zoom.apply_zoom(self.zoom.zoom_index + event.y, self.camera, self.world, self.renderer, self.camera_vel)
 
-            if event.type == py.MOUSEBUTTONDOWN and event.button == 1:  # left click
+            elif event.type == py.MOUSEBUTTONDOWN and event.button == 1:
                 mx, my = py.mouse.get_pos()
                 tile_size = self.world.tile_size
                 world_x = int((self.camera.x + mx) // tile_size)

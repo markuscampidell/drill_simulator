@@ -5,9 +5,10 @@ class OreGenerator:
     """Generates ore patches for world regions."""
     
     ORE_SETTINGS = {
-        "iron": {"weight": 45, "radius": (8, 12)},
+        "iron": {"weight": 20, "radius": (12, 17)},
+        "copper": {"weight": 25, "radius": (10, 16)},
         "coal": {"weight": 25, "radius": (6, 10)},
-        "stone": {"weight": 30, "radius": (6, 10)},
+        "stone": {"weight": 30, "radius": (10, 12)},
     }
 
     def __init__(self, seed, region_size):
