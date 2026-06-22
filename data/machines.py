@@ -16,6 +16,7 @@ class Machine:
         self.x = 0
         self.y = 0
         self.color = MACHINE_COLORS.get(name, (180, 180, 180))
+        self.recipe = None  # Recipe this machine is running
 
     def bounds(self, x=None, y=None):
         x = self.x if x is None else x
@@ -26,6 +27,10 @@ class Machine:
     def is_miner(self):
         return self.name.lower() == "miner"
 
+
+    def set_recipe(self, recipe):
+        """Set the recipe for this machine."""
+        self.recipe = recipe
     def update(self, dt):
         pass
 

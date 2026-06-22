@@ -22,26 +22,27 @@ class Inventory:
 
         self._counts[item_key] += amount
 
-    def remove(self, item_key: str, amount: int = 1):
-        """Remove items from the inventory.
-
-        Args:
-            item_key: Key from ITEMS.
-            amount: Positive number of items to remove.
-
-        Raises:
-            ValueError: If amount is invalid or inventory lacks enough items.
-        """
+    def remove(self, item_key: str, amount: float = 1):
         self._validate_item_key(item_key)
-        if amount <= 0:
-            raise ValueError("Amount to remove must be positive")
 
-        if self._counts[item_key] < amount:
+        EPSILON = 1e-9
+
+        if amount <= EPSILON:
+            return
+
+        available = self._counts[item_key]
+
+        if available + EPSILON < amount:
             raise ValueError(
-                f"Not enough {item_key} in inventory: {self._counts[item_key]} available"
+                f"Not enough {item_key} in inventory: {available} available"
             )
 
         self._counts[item_key] -= amount
+
+        # Snap tiny leftovers to exactly zero
+        if abs(self._counts[item_key]) < EPSILON:
+            self._counts[item_key] = 0
+
         if self._counts[item_key] == 0:
             del self._counts[item_key]
 
@@ -70,6 +71,11 @@ class Inventory:
     def _validate_item_key(self, item_key: str):
         if item_key not in ITEMS:
             raise KeyError(f"Unknown item key: {item_key}")
+    
+    def cleanup(self, epsilon=1e-6):
+        for key in list(self._counts.keys()):
+            if abs(self._counts[key]) < epsilon:
+                del self._counts[key]
 
     def __repr__(self):
         if not self._counts:

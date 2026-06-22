@@ -6,9 +6,10 @@ class MachineManager:
     ORE_TILES = {"iron", "copper", "coal", "stone"}
     SPATIAL_GRID_SIZE = 16  # Group machines into 16x16 tile chunks
 
-    def __init__(self, world=None):
+    def __init__(self, world=None, production_system=None):
         self.machines = []
         self.world = world
+        self.production_system = production_system
         self.spatial_grid = {}  # Dict of {(grid_x, grid_y): [machines]}
 
     def _get_grid_cells(self, x, y, width, height):
@@ -44,6 +45,11 @@ class MachineManager:
         machine.y = y
         self.machines.append(machine)
         self._add_to_spatial_grid(machine)
+        
+        # Register with production system if available
+        if self.production_system is not None:
+            self.production_system.register_machine(machine)
+        
         return True
 
     def update(self, dt):

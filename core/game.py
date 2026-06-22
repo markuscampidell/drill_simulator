@@ -6,7 +6,9 @@ from core.renderer import Renderer
 from core.zoom import ZoomController
 from systems.machine_manager import MachineManager
 from systems.inventory import Inventory
+from systems.production_system import ProductionSystem
 from ui.inventory_ui import InventoryUI
+from data.recipes import RECIPES
 
 
 class Game:
@@ -23,13 +25,13 @@ class Game:
 
         self.world = World()
         self.camera = Camera(*self.screen.get_size())
-        self.machine_manager = MachineManager(self.world)
-        self.renderer = Renderer(self.world, self.machine_manager)
-
+        3
         self.inventory = Inventory()
-        self.inventory.add("iron_ore", 100)
-        self.inventory.add("coal", 50)
-
+        self.inventory.add("iron_ingot", 20)
+        
+        self.production_system = ProductionSystem(self.inventory)
+        self.machine_manager = MachineManager(self.world, self.production_system)
+        self.renderer = Renderer(self.world, self.machine_manager)
         self.inventory_ui = InventoryUI(self.inventory)
 
         self.camera_vel = py.Vector2()
@@ -41,10 +43,9 @@ class Game:
     def run(self):
         while self.running:
             self.events()
-            self.update()
+            dt = self.clock.tick(60) / 1000.0  # Convert milliseconds to seconds
+            self.update(dt)
             self.draw()
-
-            self.clock.tick(60)
 
         py.quit()
 
@@ -65,9 +66,22 @@ class Game:
                 world_x = int((self.camera.x + mx) // tile_size)
                 world_y = int((self.camera.y + my) // tile_size)
                 self.machine_manager.add_machine("assembler", world_x, world_y)
+            
+            # Number keys 1-4 to set recipes on last machine for testing
+            elif event.type == py.KEYDOWN:
+                recipe_keys = ["iron_ingot_recipe", "stone_brick_recipe", "iron_plate_recipe", "iron_gear_recipe", "copper_wire_recipe"]
+                if event.key in [py.K_1, py.K_2, py.K_3, py.K_4, py.K_5]:
+                    index = event.key - py.K_1
+                    if index < len(recipe_keys) and self.machine_manager.machines:
+                        recipe_key = recipe_keys[index]
+                        if recipe_key in RECIPES:
+                            last_machine = self.machine_manager.machines[-1]
+                            last_machine.set_recipe(RECIPES[recipe_key])
+                            print(f"Set {last_machine.name} recipe to {recipe_key}")
 
-    def update(self):
+    def update(self, dt):
         self.handle_input()
+        self.production_system.update(dt)
 
         # move camera
         self.camera.x += self.camera_vel.x
@@ -97,7 +111,6 @@ class Game:
 
     def draw(self):
         self.renderer.draw_world(self.screen, self.world, self.camera)
-
         self.inventory_ui.draw(self.screen)
-
+        
         py.display.flip()
