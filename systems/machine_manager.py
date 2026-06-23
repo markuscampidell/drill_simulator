@@ -34,7 +34,7 @@ class MachineManager:
 
         x -= (machine.width - 1) // 2
         y -= (machine.height - 1) // 2
-
+        
         if not self.validate_position(machine, x, y):
             return False
 

@@ -1,5 +1,7 @@
 import pygame as py
 
+from data.recipes import RECIPES
+
 MACHINE_COLORS = {
     "Miner": (220, 220, 80),
     "Furnace": (220, 120, 80),
@@ -17,6 +19,7 @@ class Machine:
         self.y = 0
         self.color = MACHINE_COLORS.get(name, (180, 180, 180))
         self.recipe = None  # Recipe this machine is running
+        self.allowed_recipes = []
 
     def bounds(self, x=None, y=None):
         x = self.x if x is None else x
@@ -28,11 +31,16 @@ class Machine:
         return self.name.lower() == "miner"
 
 
+    def can_run(self, recipe_key):
+        return recipe_key in self.allowed_recipes
+
     def set_recipe(self, recipe):
-        """Set the recipe for this machine."""
+        if not self.can_run(recipe.key):
+            raise ValueError(
+                f"{self.name} cannot run recipe {recipe.key}"
+            )
+
         self.recipe = recipe
-    def update(self, dt):
-        pass
 
     def _get_surface(self, tile_size):
         key = (self.name, self.width, self.height, tile_size)
@@ -51,17 +59,59 @@ class Machine:
         )
 
     def clone(self):
-        return Machine(self.name, self.width, self.height)
+        return self.__class__()
 
-MACHINES = {
-    "miner": Machine("Miner", width=1, height=1),
-    "furnace": Machine("Furnace", width=2, height=2),
-    "assembler": Machine("Assembler", width=3, height=3),
+    def get_available_recipes(self):
+        return [
+            RECIPES[key]
+            for key in self.allowed_recipes
+            if key in RECIPES
+        ]
+
+
+class Miner(Machine):
+    def __init__(self):
+        super().__init__("Miner", width=1, height=1)
+
+        self.allowed_recipes = [
+            "iron_ore_recipe",
+            "copper_ore_recipe",
+            "stone_recipe",
+            "coal_recipe",
+            ]
+
+class Furnace(Machine):
+    def __init__(self):
+        super().__init__("Furnace", width=2, height=2)
+        
+        self.allowed_recipes = [
+                "iron_ingot_recipe",
+                "copper_ingot_recipe",
+                "stone_brick_recipe",
+                ]
+
+class Assembler(Machine):
+    def __init__(self):
+        super().__init__("Assembler", width=3, height=3)
+        
+        self.allowed_recipes = [
+                "iron_plate_recipe",
+                "iron_gear_recipe",
+                "copper_wire_recipe",
+                ]
+
+
+MACHINE_CLASSES = {
+    "miner": Miner,
+    "furnace": Furnace,
+    "assembler": Assembler,
 }
 
 
 def create_machine(machine_key):
-    prototype = MACHINES.get(machine_key)
-    if prototype is None:
-        raise KeyError(f"Unknown machine key: {machine_key}")
-    return prototype.clone()
+    machine_class = MACHINE_CLASSES.get(machine_key)
+
+    if machine_class is None:
+        raise KeyError(f"Unknown machine: {machine_key}")
+
+    return machine_class()

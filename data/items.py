@@ -14,31 +14,22 @@ ITEMS = {
 }
 
 def calculate_item_value(recipe_key):
-    if recipe_key not in RECIPES:
+    recipe = RECIPES.get(recipe_key)
+
+    if recipe is None:
         return 0
 
-    recipe = RECIPES[recipe_key]
-
-    total_input_value_per_minute = 0
-
-    # Value of all consumed resources per minute
-    for item, amount_per_minute in recipe.inputs_per_minute.items():
-        if item not in ITEMS:
-            return 0
-
-        total_input_value_per_minute += (
-            ITEMS[item].value * amount_per_minute
+    try:
+        total_input_value = sum(
+            ITEMS[item].value * amount
+            for item, amount in recipe.inputs_per_second.items()
         )
-
-    # Total produced items per minute
-    total_output_per_minute = sum(
-        recipe.outputs_per_minute.values()
-    )
-
-    if total_output_per_minute == 0:
+    except KeyError:
         return 0
 
-    return total_input_value_per_minute / total_output_per_minute
+    total_output = sum(recipe.outputs_per_second.values())
+
+    return total_input_value / total_output if total_output > 0 else 0
 
 # Processed items and machines
 ITEMS.update({

@@ -28,6 +28,6 @@ class InventoryUI:
             return
 
         for item_name, quantity in items.items():
-            item_surf = self.font.render(f"{item_name}: {round(quantity)}", True, (255, 255, 255))
+            item_surf = self.font.render(f"{item_name}: {quantity:.2f}", True, (255, 255, 255))
             surface.blit(item_surf, (18, y_offset))
             y_offset += 20

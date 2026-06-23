@@ -5,6 +5,7 @@ from data.items import ITEMS
 
 class Inventory:
     """Stores item counts keyed by item ID from data.items.ITEMS."""
+    EPSILON = 1e-6  # Threshold for considering a count to be effectively zero
 
     def __init__(self):
         self._counts = Counter()
@@ -25,14 +26,12 @@ class Inventory:
     def remove(self, item_key: str, amount: float = 1):
         self._validate_item_key(item_key)
 
-        EPSILON = 1e-9
-
-        if amount <= EPSILON:
+        if amount <= self.EPSILON:
             return
 
         available = self._counts[item_key]
 
-        if available + EPSILON < amount:
+        if available + self.EPSILON < amount:
             raise ValueError(
                 f"Not enough {item_key} in inventory: {available} available"
             )
@@ -40,18 +39,18 @@ class Inventory:
         self._counts[item_key] -= amount
 
         # Snap tiny leftovers to exactly zero
-        if abs(self._counts[item_key]) < EPSILON:
+        if abs(self._counts[item_key]) < self.EPSILON:
             self._counts[item_key] = 0
 
         if self._counts[item_key] == 0:
             del self._counts[item_key]
 
-    def get_count(self, item_key: str) -> int:
+    def get_count(self, item_key: str) -> float:
         """Return the quantity of the given item key."""
         self._validate_item_key(item_key)
         return self._counts[item_key]
 
-    def has(self, item_key: str, amount: int = 1) -> bool:
+    def has(self, item_key: str, amount: float = 1) -> bool:
         """Return whether the inventory contains at least amount of item_key."""
         self._validate_item_key(item_key)
         return self._counts[item_key] >= amount
@@ -60,7 +59,7 @@ class Inventory:
         """Return a dictionary of item_key to count for all stored items."""
         return dict(self._counts)
 
-    def total_count(self) -> int:
+    def total_count(self) -> float:
         """Return total number of items in the inventory."""
         return sum(self._counts.values())
 
@@ -72,9 +71,9 @@ class Inventory:
         if item_key not in ITEMS:
             raise KeyError(f"Unknown item key: {item_key}")
     
-    def cleanup(self, epsilon=1e-6):
+    def cleanup(self):
         for key in list(self._counts.keys()):
-            if abs(self._counts[key]) < epsilon:
+            if abs(self._counts[key]) < self.EPSILON:
                 del self._counts[key]
 
     def __repr__(self):

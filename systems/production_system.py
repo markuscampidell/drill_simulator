@@ -9,7 +9,7 @@ class ProductionSystem:
     def __init__(self, inventory):
         self.inventory = inventory
         self.machines = []
-        self.items_per_minute = {}
+        self.items_per_second = {}
         self.timer = 0
     
     def register_machine(self, machine):
@@ -20,101 +20,89 @@ class ProductionSystem:
     def update(self, dt):
         self.timer += dt
 
-        if self.timer < 1.0:
-            self.inventory.cleanup()
-            return True
+        while self.timer >= 1.0:
+            self.timer -= 1.0
 
-        self.timer -= 1.0
+            # --- Phase 1: compute total requested inputs ---
+            requested = {}
 
-        time_fraction = 1 / 60.0
+            for m in self.machines:
+                r = m.recipe
+                if r is None:
+                    continue
 
-        # STEP 1: collect demands
-        demands = []
+                for item, req in r.inputs_per_second.items():
+                    if req > 0:
+                        requested[item] = requested.get(item, 0.0) + req
 
-        for machine in self.machines:
-            if machine.recipe is None:
-                continue
+            # --- Phase 2: compute per-item scale ---
+            item_scale = {}
 
-            demands.append((machine, self._get_demand(machine, time_fraction)))
+            for item, req in requested.items():
+                available = self.inventory.get_count(item)
+                if req <= 0:
+                    item_scale[item] = 1.0
+                else:
+                    item_scale[item] = min(1.0, available / req)
 
-        # STEP 2: compute allocations
-        allocations = self._allocate(demands)
+            # --- Phase 3: compute per-machine scale ---
+            machine_scale = {}
 
-        # STEP 3: execute
-        for machine, scale in allocations.items():
-            self._run_scaled(machine, time_fraction, scale)
+            for m in self.machines:
+                r = m.recipe
+                if r is None:
+                    machine_scale[m] = 0
+                    continue
 
-        return True
+                scale = 1.0
+                for item, req in r.inputs_per_second.items():
+                    if req > 0:
+                        scale = min(scale, item_scale.get(item, 1.0))
 
-    def _get_demand(self, machine, time_fraction):
-        recipe = machine.recipe
+                machine_scale[m] = scale
 
-        demand = {}
+            # --- Phase 4: remove inputs once ---
+            total_consumption = {}
 
-        for item, per_min in recipe.inputs_per_minute.items():
-            demand[item] = per_min * time_fraction
+            for m, scale in machine_scale.items():
+                if scale <= 0:
+                    continue
 
-        return demand
-    
-    def _allocate(self, demands):
-        total_needed = {}
+                r = m.recipe
+                for item, req in r.inputs_per_second.items():
+                    if req > 0:
+                        total_consumption[item] = (
+                            total_consumption.get(item, 0.0)
+                            + req * scale
+                        )
 
-        # sum all demand per item
-        for machine, demand in demands:
-            for item, amount in demand.items():
-                total_needed[item] = total_needed.get(item, 0) + amount
-
-        # compute scale per item
-        scale_per_item = {}
-        for item, needed in total_needed.items():
-            available = self.inventory.get_count(item)
-            scale_per_item[item] = min(1.0, available / needed) if needed > 0 else 1.0
-
-        # assign each machine a scale (worst-case limiting item)
-        result = {}
-
-        for machine, demand in demands:
-            scale = 1.0
-
-            for item, amount in demand.items():
-                if amount > 0:
-                    scale = min(scale, scale_per_item[item])
-
-            result[machine] = scale
-
-        return result
-    
-    def _run_scaled(self, machine, time_fraction, scale):
-        recipe = machine.recipe
-
-        # consume
-        for item, per_min in recipe.inputs_per_minute.items():
-            amount = per_min * time_fraction * scale
-
-            if amount > 0:
+            for item, amount in total_consumption.items():
                 self.inventory.remove(item, amount)
 
-        # produce
-        for item, per_min in recipe.outputs_per_minute.items():
-            amount = per_min * time_fraction * scale
+            # --- Phase 5: produce outputs ---
+            for m, scale in machine_scale.items():
+                if scale <= 0:
+                    continue
 
-            if amount > 0:
-                self.inventory.add(item, amount)
+                r = m.recipe
+                for item, out in r.outputs_per_second.items():
+                    if out > 0:
+                        self.inventory.add(item, out * scale)
+
     
     def _update_production_rates(self):
-        """Calculate total items per minute from all active machines."""
-        self.items_per_minute.clear()
-        
+        self.items_per_second.clear()
+
         for machine in self.machines:
             if machine.recipe is None:
                 continue
-            
-            # Sum outputs per minute
-            for output_item, rate in machine.recipe.outputs_per_minute.items():
-                if output_item not in self.items_per_minute:
-                    self.items_per_minute[output_item] = 0
-                self.items_per_minute[output_item] += rate
+
+            for item, rate_per_second in machine.recipe.outputs_per_second.items():
+                self.items_per_second[item] = (
+                    self.items_per_second.get(item, 0)
+                    + rate_per_second
+                )
     
     def get_production_rate(self, item_key):
-        """Get items per minute for a specific item."""
-        return self.items_per_minute.get(item_key, 0.0)
+        """Get items per second for a specific item."""
+        return self.items_per_second.get(item_key, 0.0)

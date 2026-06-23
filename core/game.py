@@ -25,12 +25,32 @@ class Game:
 
         self.world = World()
         self.camera = Camera(*self.screen.get_size())
-        3
+        
         self.inventory = Inventory()
-        self.inventory.add("iron_ingot", 20)
+        self.inventory.add("iron_ore", 10000000)
+        self.inventory.add("coal", 5000000)
         
         self.production_system = ProductionSystem(self.inventory)
         self.machine_manager = MachineManager(self.world, self.production_system)
+
+        
+        spacing = 4  # tiles between machines
+        recipe = RECIPES["iron_ingot_recipe"]
+
+        for gx in range(30):
+            for gy in range(30):
+                world_x = gx * spacing
+                world_y = gy * spacing
+
+                # Use your real add_machine() API
+                if self.machine_manager.add_machine("furnace", world_x, world_y):
+                    machine = self.machine_manager.machines[-1]
+                    machine.set_recipe(recipe)
+        
+
+
+
+
         self.renderer = Renderer(self.world, self.machine_manager)
         self.inventory_ui = InventoryUI(self.inventory)
 
@@ -65,7 +85,7 @@ class Game:
                 tile_size = self.world.tile_size
                 world_x = int((self.camera.x + mx) // tile_size)
                 world_y = int((self.camera.y + my) // tile_size)
-                self.machine_manager.add_machine("assembler", world_x, world_y)
+                self.machine_manager.add_machine("furnace", world_x, world_y)
             
             # Number keys 1-4 to set recipes on last machine for testing
             elif event.type == py.KEYDOWN:
