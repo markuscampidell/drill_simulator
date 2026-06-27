@@ -10,10 +10,8 @@ class ZoomController:
     - Apply zoom changes while keeping the screen center stable
     """
 
-    def __init__(self, zoom_levels=None, build_min=16, build_max=256):
-        self.zoom_levels = zoom_levels or [16, 24, 32, 48, 64, 128, 256]
-        self.build_min = build_min
-        self.build_max = build_max
+    def __init__(self, zoom_levels=[3, 16, 24, 32, 48, 64, 96, 128]):
+        self.zoom_levels = zoom_levels
         self.zoom_index = 0
 
     def find_index(self, tile_size):
@@ -25,10 +23,6 @@ class ZoomController:
     @property
     def tile_size(self):
         return self.zoom_levels[self.zoom_index]
-
-    @property
-    def can_build(self):
-        return self.build_min <= self.tile_size <= self.build_max
 
     def apply_zoom(self, new_index, camera, world, renderer, camera_vel=None):
         """Apply zoom change centered on screen.
@@ -49,13 +43,10 @@ class ZoomController:
 
         # update sizes and cached surfaces
         world.tile_size = new_tile_size
-        renderer.tile_surfaces = renderer._get_surfaces(new_tile_size)
-        renderer._clear_chunk_cache()
+        renderer.set_tile_size(new_tile_size)
 
         # scale camera so center stays the same
-        screen_center *= scale
-        camera.x = screen_center.x - camera.width / 2
-        camera.y = screen_center.y - camera.height / 2
+        camera.zoom(screen_center, scale)
 
         # scale camera velocity if provided
         if camera_vel is not None:
@@ -64,7 +55,7 @@ class ZoomController:
         self.zoom_index = new_index
         return True
 
-    def force_apply(self, camera, world, renderer, camera_vel=None):
+    def force_apply(self, world, renderer, camera_vel=None):
         """Force applying the current zoom index (useful on init)."""
         # apply with same index but ensure surfaces and tile_size are set
         old_tile_size = world.tile_size

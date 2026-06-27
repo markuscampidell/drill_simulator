@@ -34,6 +34,10 @@ class Renderer:
         cls._chunk_surfaces_cache.clear()
         cls._chunk_cache_tile_size = None
     
+    def set_tile_size(self, tile_size):
+        self.tile_surfaces = self._get_surfaces(tile_size)
+        self._clear_chunk_cache()
+    
     def _get_chunk_surface(self, chunk, tile_size):
         """Get or create a pre-rendered surface for a chunk at the given tile_size."""
         if tile_size >= self.CHUNK_CACHE_MIN_TILE_SIZE:
@@ -65,6 +69,8 @@ class Renderer:
             self._chunk_surfaces_cache[chunk_id] = surf
         
         return self._chunk_surfaces_cache[chunk_id]
+
+    
 
     def draw_chunk(self, screen, chunk, cx, cy, camera):
         ts = self.world.tile_size
@@ -109,6 +115,10 @@ class Renderer:
         for cy in range(start_y, end_y + 1):
             for cx in range(start_x, end_x + 1):
                 chunk = world.get_chunk(cx, cy)
+
+                if chunk is None:
+                    continue
+                
                 self.draw_chunk(screen, chunk, cx, cy, camera)
         
         self.draw_machines(screen, camera)
